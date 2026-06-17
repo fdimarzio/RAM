@@ -5,40 +5,40 @@ import './EntityPage.css'
 const EMPTY_FORM = {
   id: null,
   name: '',
-  industry: '',
-  website: '',
-  address: '',
+  case_type: '',
   description: '',
-  status: 'active',
-  relationship_notes: ''
+  status: 'open',
+  start_date: '',
+  target_completion_date: '',
+  notes: ''
 }
 
-function CompaniesPage({ onSelectCompany }) {
-  const [companies, setCompanies] = useState([])
+function CasesPage() {
+  const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  async function loadCompanies() {
+  async function loadCases() {
     setLoading(true)
     setError(null)
     const { data, error: fetchError } = await supabase
-      .from('companies')
+      .from('cases')
       .select('*')
-      .order('name', { ascending: true })
+      .order('created_at', { ascending: false })
 
     if (fetchError) {
       setError(fetchError.message)
     } else {
-      setCompanies(data || [])
+      setCases(data || [])
     }
     setLoading(false)
   }
 
   useEffect(() => {
-    loadCompanies()
+    loadCases()
   }, [])
 
   function openCreateForm() {
@@ -46,8 +46,12 @@ function CompaniesPage({ onSelectCompany }) {
     setShowForm(true)
   }
 
-  function openEditForm(company) {
-    setForm(company)
+  function openEditForm(c) {
+    setForm({
+      ...c,
+      start_date: c.start_date || '',
+      target_completion_date: c.target_completion_date || ''
+    })
     setShowForm(true)
   }
 
@@ -63,23 +67,20 @@ function CompaniesPage({ onSelectCompany }) {
 
     const payload = {
       name: form.name,
-      industry: form.industry || null,
-      website: form.website || null,
-      address: form.address || null,
+      case_type: form.case_type || null,
       description: form.description || null,
-      status: form.status || 'active',
-      relationship_notes: form.relationship_notes || null
+      status: form.status || 'open',
+      start_date: form.start_date || null,
+      target_completion_date: form.target_completion_date || null,
+      notes: form.notes || null
     }
 
     let submitError
     if (form.id) {
-      const { error: updateError } = await supabase
-        .from('companies')
-        .update(payload)
-        .eq('id', form.id)
+      const { error: updateError } = await supabase.from('cases').update(payload).eq('id', form.id)
       submitError = updateError
     } else {
-      const { error: insertError } = await supabase.from('companies').insert(payload)
+      const { error: insertError } = await supabase.from('cases').insert(payload)
       submitError = insertError
     }
 
@@ -91,25 +92,25 @@ function CompaniesPage({ onSelectCompany }) {
 
     setSaving(false)
     closeForm()
-    loadCompanies()
+    loadCases()
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this company? This cannot be undone.')) return
-    const { error: deleteError } = await supabase.from('companies').delete().eq('id', id)
+    if (!window.confirm('Delete this case? This cannot be undone.')) return
+    const { error: deleteError } = await supabase.from('cases').delete().eq('id', id)
     if (deleteError) {
       setError(deleteError.message)
     } else {
-      loadCompanies()
+      loadCases()
     }
   }
 
   return (
     <div className="entity-page">
       <div className="entity-page-header">
-        <h2>Companies</h2>
+        <h2>Cases</h2>
         <button className="primary-button" onClick={openCreateForm}>
-          + New Company
+          + New Case
         </button>
       </div>
 
@@ -117,7 +118,7 @@ function CompaniesPage({ onSelectCompany }) {
 
       {showForm && (
         <form className="entity-form" onSubmit={handleSubmit}>
-          <h3>{form.id ? 'Edit Company' : 'New Company'}</h3>
+          <h3>{form.id ? 'Edit Case' : 'New Case'}</h3>
           <div className="form-grid">
             <label>
               Name *
@@ -128,35 +129,38 @@ function CompaniesPage({ onSelectCompany }) {
               />
             </label>
             <label>
-              Industry
+              Type
               <input
-                value={form.industry || ''}
-                onChange={(e) => setForm({ ...form, industry: e.target.value })}
-              />
-            </label>
-            <label>
-              Website
-              <input
-                value={form.website || ''}
-                onChange={(e) => setForm({ ...form, website: e.target.value })}
+                placeholder="e.g. Onboarding, Issue, Initiative"
+                value={form.case_type || ''}
+                onChange={(e) => setForm({ ...form, case_type: e.target.value })}
               />
             </label>
             <label>
               Status
               <select
-                value={form.status || 'active'}
+                value={form.status || 'open'}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="prospect">Prospect</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="closed">Closed</option>
               </select>
             </label>
-            <label className="full-width">
-              Address
+            <label>
+              Start Date
               <input
-                value={form.address || ''}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                type="date"
+                value={form.start_date || ''}
+                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+              />
+            </label>
+            <label>
+              Target Completion Date
+              <input
+                type="date"
+                value={form.target_completion_date || ''}
+                onChange={(e) => setForm({ ...form, target_completion_date: e.target.value })}
               />
             </label>
             <label className="full-width">
@@ -168,11 +172,11 @@ function CompaniesPage({ onSelectCompany }) {
               />
             </label>
             <label className="full-width">
-              Relationship Notes
+              Notes
               <textarea
                 rows={2}
-                value={form.relationship_notes || ''}
-                onChange={(e) => setForm({ ...form, relationship_notes: e.target.value })}
+                value={form.notes || ''}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
               />
             </label>
           </div>
@@ -188,33 +192,33 @@ function CompaniesPage({ onSelectCompany }) {
       )}
 
       {loading ? (
-        <p className="muted-text">Loading companies...</p>
-      ) : companies.length === 0 ? (
-        <p className="muted-text">No companies yet. Click "+ New Company" to add one.</p>
+        <p className="muted-text">Loading cases...</p>
+      ) : cases.length === 0 ? (
+        <p className="muted-text">No cases yet. Click "+ New Case" to add one.</p>
       ) : (
         <table className="entity-table">
           <thead>
             <tr>
               <th>Name</th>
-              <th>Industry</th>
+              <th>Type</th>
               <th>Status</th>
-              <th>Website</th>
+              <th>Start Date</th>
+              <th>Target Completion</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {companies.map((c) => (
+            {cases.map((c) => (
               <tr key={c.id}>
+                <td>{c.name}</td>
+                <td>{c.case_type || '—'}</td>
                 <td>
-                  <button className="link-button" onClick={() => onSelectCompany(c.id)}>
-                    {c.name}
-                  </button>
+                  <span className={`status-badge status-${c.status}`}>
+                    {c.status?.replace('_', ' ')}
+                  </span>
                 </td>
-                <td>{c.industry || '—'}</td>
-                <td>
-                  <span className={`status-badge status-${c.status}`}>{c.status}</span>
-                </td>
-                <td>{c.website || '—'}</td>
+                <td>{c.start_date || '—'}</td>
+                <td>{c.target_completion_date || '—'}</td>
                 <td className="row-actions">
                   <button className="link-button" onClick={() => openEditForm(c)}>
                     Edit
@@ -232,4 +236,4 @@ function CompaniesPage({ onSelectCompany }) {
   )
 }
 
-export default CompaniesPage
+export default CasesPage

@@ -15,7 +15,7 @@ const EMPTY_FORM = {
   personal_notes: ''
 }
 
-function PeoplePage() {
+function PeoplePage({ onSelectPerson }) {
   const [people, setPeople] = useState([])
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
@@ -245,7 +245,11 @@ function PeoplePage() {
           <tbody>
             {people.map((p) => (
               <tr key={p.id}>
-                <td>{p.full_name}</td>
+                <td>
+                  <button className="link-button" onClick={() => onSelectPerson(p.id)}>
+                    {p.full_name}
+                  </button>
+                </td>
                 <td>{p.title || '—'}</td>
                 <td>{p.companies?.name || '—'}</td>
                 <td>{p.email || '—'}</td>

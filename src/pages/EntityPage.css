@@ -162,3 +162,27 @@
   background: #fff3d6;
   color: #93650b;
 }
+
+.checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  border: 1px solid #d8d4cb;
+  border-radius: 6px;
+  padding: 10px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #1f1f1f;
+  flex-direction: row !important;
+}
+
+.checkbox-item input[type='checkbox'] {
+  width: auto;
+}
