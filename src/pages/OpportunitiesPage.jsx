@@ -18,7 +18,7 @@ const EMPTY_FORM = {
 
 const STAGES = ['new', 'qualifying', 'proposal', 'negotiation', 'closed_won', 'closed_lost']
 
-function OpportunitiesPage() {
+function OpportunitiesPage({ onSelectOpportunity }) {
   const [opportunities, setOpportunities] = useState([])
   const [companies, setCompanies] = useState([])
   const [people, setPeople] = useState([])
@@ -283,7 +283,11 @@ function OpportunitiesPage() {
           <tbody>
             {opportunities.map((o) => (
               <tr key={o.id}>
-                <td>{o.name}</td>
+                <td>
+                  <button className="link-button" onClick={() => onSelectOpportunity(o.id)}>
+                    {o.name}
+                  </button>
+                </td>
                 <td>{o.companies?.name || '—'}</td>
                 <td>{o.people?.full_name || '—'}</td>
                 <td>

@@ -13,14 +13,16 @@ const EMPTY_FORM = {
   person_id: '',
   company_id: '',
   opportunity_id: '',
+  event_id: '',
   case_id: ''
 }
 
-function TasksPage() {
+function TasksPage({ onSelectTask }) {
   const [tasks, setTasks] = useState([])
   const [companies, setCompanies] = useState([])
   const [people, setPeople] = useState([])
   const [opportunities, setOpportunities] = useState([])
+  const [events, setEvents] = useState([])
   const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -45,18 +47,26 @@ function TasksPage() {
   }
 
   async function loadLookups() {
-    const [{ data: companyData }, { data: peopleData }, { data: oppData }, { data: caseData }] =
-      await Promise.all([
-        supabase.from('companies').select('id, name').order('name'),
-        supabase.from('people').select('id, full_name').order('full_name'),
-        supabase.from('opportunities').select('id, name').order('name'),
-        supabase.from('cases').select('id, name').order('name')
-      ])
+    const [
+      { data: companyData },
+      { data: peopleData },
+      { data: oppData },
+      { data: eventData },
+      { data: caseData }
+    ] = await Promise.all([
+      supabase.from('companies').select('id, name').order('name'),
+      supabase.from('people').select('id, full_name').order('full_name'),
+      supabase.from('opportunities').select('id, name').order('name'),
+      supabase.from('events').select('id, event_type, event_date').order('event_date', { ascending: false }),
+      supabase.from('cases').select('id, name').order('name')
+    ])
     setCompanies(companyData || [])
     setPeople(peopleData || [])
     setOpportunities(oppData || [])
+    setEvents(eventData || [])
     setCases(caseData || [])
   }
+
 
   useEffect(() => {
     loadTasks()
@@ -75,6 +85,7 @@ function TasksPage() {
       person_id: task.person_id || '',
       company_id: task.company_id || '',
       opportunity_id: task.opportunity_id || '',
+      event_id: task.event_id || '',
       case_id: task.case_id || ''
     })
     setShowForm(true)
@@ -100,6 +111,7 @@ function TasksPage() {
       person_id: form.person_id || null,
       company_id: form.company_id || null,
       opportunity_id: form.opportunity_id || null,
+      event_id: form.event_id || null,
       case_id: form.case_id || null
     }
 
@@ -236,6 +248,20 @@ function TasksPage() {
               </select>
             </label>
             <label>
+              Linked Event
+              <select
+                value={form.event_id || ''}
+                onChange={(e) => setForm({ ...form, event_id: e.target.value })}
+              >
+                <option value="">— None —</option>
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.event_type || 'Event'} — {new Date(ev.event_date).toLocaleDateString()}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
               Linked Case
               <select
                 value={form.case_id || ''}
@@ -296,7 +322,11 @@ function TasksPage() {
                 '—'
               return (
                 <tr key={t.id}>
-                  <td>{t.name}</td>
+                  <td>
+                    <button className="link-button" onClick={() => onSelectTask(t.id)}>
+                      {t.name}
+                    </button>
+                  </td>
                   <td>{t.due_date || '—'}</td>
                   <td>
                     <span className={`status-badge status-${t.priority}`}>{t.priority}</span>

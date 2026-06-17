@@ -24,7 +24,7 @@ function toLocalDatetimeInputValue(isoString) {
   return local.toISOString().slice(0, 16)
 }
 
-function EventsPage() {
+function EventsPage({ onSelectEvent }) {
   const [events, setEvents] = useState([])
   const [companies, setCompanies] = useState([])
   const [people, setPeople] = useState([])
@@ -318,7 +318,11 @@ function EventsPage() {
           <tbody>
             {events.map((ev) => (
               <tr key={ev.id}>
-                <td>{new Date(ev.event_date).toLocaleString()}</td>
+                <td>
+                  <button className="link-button" onClick={() => onSelectEvent(ev.id)}>
+                    {new Date(ev.event_date).toLocaleString()}
+                  </button>
+                </td>
                 <td>{ev.event_type || '—'}</td>
                 <td>{ev.companies?.name || '—'}</td>
                 <td>

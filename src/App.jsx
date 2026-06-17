@@ -7,6 +7,9 @@ import CasesPage from './pages/CasesPage.jsx'
 import EventsPage from './pages/EventsPage.jsx'
 import CompanyDetailPage from './pages/CompanyDetailPage.jsx'
 import PersonDetailPage from './pages/PersonDetailPage.jsx'
+import OpportunityDetailPage from './pages/OpportunityDetailPage.jsx'
+import TaskDetailPage from './pages/TaskDetailPage.jsx'
+import EventDetailPage from './pages/EventDetailPage.jsx'
 import './styles/App.css'
 
 const VIEWS = ['dashboard', 'people', 'companies', 'opportunities', 'events', 'tasks', 'cases']
@@ -15,10 +18,16 @@ function App() {
   const [view, setView] = useState('companies')
   const [selectedCompanyId, setSelectedCompanyId] = useState(null)
   const [selectedPersonId, setSelectedPersonId] = useState(null)
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState(null)
+  const [selectedTaskId, setSelectedTaskId] = useState(null)
+  const [selectedEventId, setSelectedEventId] = useState(null)
 
   function changeView(nextView) {
     setSelectedCompanyId(null)
     setSelectedPersonId(null)
+    setSelectedOpportunityId(null)
+    setSelectedTaskId(null)
+    setSelectedEventId(null)
     setView(nextView)
   }
 
@@ -60,9 +69,30 @@ function App() {
             <PeoplePage onSelectPerson={setSelectedPersonId} />
           ))}
 
-        {view === 'opportunities' && <OpportunitiesPage />}
-        {view === 'events' && <EventsPage />}
-        {view === 'tasks' && <TasksPage />}
+        {view === 'opportunities' &&
+          (selectedOpportunityId ? (
+            <OpportunityDetailPage
+              opportunityId={selectedOpportunityId}
+              onBack={() => setSelectedOpportunityId(null)}
+            />
+          ) : (
+            <OpportunitiesPage onSelectOpportunity={setSelectedOpportunityId} />
+          ))}
+
+        {view === 'events' &&
+          (selectedEventId ? (
+            <EventDetailPage eventId={selectedEventId} onBack={() => setSelectedEventId(null)} />
+          ) : (
+            <EventsPage onSelectEvent={setSelectedEventId} />
+          ))}
+
+        {view === 'tasks' &&
+          (selectedTaskId ? (
+            <TaskDetailPage taskId={selectedTaskId} onBack={() => setSelectedTaskId(null)} />
+          ) : (
+            <TasksPage onSelectTask={setSelectedTaskId} />
+          ))}
+
         {view === 'cases' && <CasesPage />}
 
         {view === 'dashboard' && (
