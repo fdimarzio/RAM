@@ -9,4 +9,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// RAM tables live in the "ram" schema (separate from PAM's "public" schema
+// in the same database), so the client must be pointed there explicitly.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: { schema: 'ram' }
+})
