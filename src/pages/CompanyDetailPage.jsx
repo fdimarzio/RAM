@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import NotesPanel from '../components/NotesPanel.jsx'
+import QuickAddForm from '../components/QuickAddForm.jsx'
 import './DetailPage.css'
 
 function CompanyDetailPage({ companyId, onBack }) {
@@ -13,6 +14,8 @@ function CompanyDetailPage({ companyId, onBack }) {
   const [allCases, setAllCases] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [activeAddForm, setActiveAddForm] = useState(null)
+  const [newCaseName, setNewCaseName] = useState('')
 
   async function loadAll() {
     setLoading(true)
@@ -80,6 +83,34 @@ function CompanyDetailPage({ companyId, onBack }) {
     }
   }
 
+  async function handleCreateNewCase(e) {
+    e.preventDefault()
+    if (!newCaseName.trim()) return
+    const { data: createdCase, error: createError } = await supabase
+      .from('cases')
+      .insert({ name: newCaseName.trim() })
+      .select('id')
+      .single()
+
+    if (createError) {
+      setError(createError.message)
+      return
+    }
+
+    const { error: linkError } = await supabase
+      .from('case_companies')
+      .insert({ company_id: companyId, case_id: createdCase.id })
+
+    if (linkError) {
+      setError(linkError.message)
+      return
+    }
+
+    setNewCaseName('')
+    setActiveAddForm(null)
+    loadAll()
+  }
+
   if (loading) return <p className="muted-text">Loading company...</p>
   if (error && !company) return <div className="error-banner">{error}</div>
   if (!company) return <p className="muted-text">Company not found.</p>
@@ -137,7 +168,26 @@ function CompanyDetailPage({ companyId, onBack }) {
       </section>
 
       <section className="detail-section">
-        <h3>Opportunities ({opportunities.length})</h3>
+        <div className="detail-section-header">
+          <h3>Opportunities ({opportunities.length})</h3>
+          {activeAddForm !== 'opportunity' && (
+            <button className="link-button" onClick={() => setActiveAddForm('opportunity')}>
+              + New Opportunity
+            </button>
+          )}
+        </div>
+        {activeAddForm === 'opportunity' && (
+          <QuickAddForm
+            entityType="opportunity"
+            linkField="company_id"
+            linkValue={companyId}
+            onDone={() => {
+              setActiveAddForm(null)
+              loadAll()
+            }}
+            onCancel={() => setActiveAddForm(null)}
+          />
+        )}
         {opportunities.length === 0 ? (
           <p className="muted-text">No opportunities linked yet.</p>
         ) : (
@@ -152,7 +202,26 @@ function CompanyDetailPage({ companyId, onBack }) {
       </section>
 
       <section className="detail-section">
-        <h3>Tasks ({tasks.length})</h3>
+        <div className="detail-section-header">
+          <h3>Tasks ({tasks.length})</h3>
+          {activeAddForm !== 'task' && (
+            <button className="link-button" onClick={() => setActiveAddForm('task')}>
+              + New Task
+            </button>
+          )}
+        </div>
+        {activeAddForm === 'task' && (
+          <QuickAddForm
+            entityType="task"
+            linkField="company_id"
+            linkValue={companyId}
+            onDone={() => {
+              setActiveAddForm(null)
+              loadAll()
+            }}
+            onCancel={() => setActiveAddForm(null)}
+          />
+        )}
         {tasks.length === 0 ? (
           <p className="muted-text">No tasks linked yet.</p>
         ) : (
@@ -167,7 +236,26 @@ function CompanyDetailPage({ companyId, onBack }) {
       </section>
 
       <section className="detail-section">
-        <h3>Events ({events.length})</h3>
+        <div className="detail-section-header">
+          <h3>Events ({events.length})</h3>
+          {activeAddForm !== 'event' && (
+            <button className="link-button" onClick={() => setActiveAddForm('event')}>
+              + New Event
+            </button>
+          )}
+        </div>
+        {activeAddForm === 'event' && (
+          <QuickAddForm
+            entityType="event"
+            linkField="company_id"
+            linkValue={companyId}
+            onDone={() => {
+              setActiveAddForm(null)
+              loadAll()
+            }}
+            onCancel={() => setActiveAddForm(null)}
+          />
+        )}
         {events.length === 0 ? (
           <p className="muted-text">No events linked yet.</p>
         ) : (
@@ -183,7 +271,43 @@ function CompanyDetailPage({ companyId, onBack }) {
       </section>
 
       <section className="detail-section">
-        <h3>Cases ({cases.length})</h3>
+        <div className="detail-section-header">
+          <h3>Cases ({cases.length})</h3>
+          {activeAddForm !== 'case' && (
+            <button className="link-button" onClick={() => setActiveAddForm('case')}>
+              + New Case
+            </button>
+          )}
+        </div>
+        {activeAddForm === 'case' && (
+          <form className="quick-add-form" onSubmit={handleCreateNewCase}>
+            <div className="form-grid">
+              <label className="full-width">
+                Name *
+                <input
+                  required
+                  value={newCaseName}
+                  onChange={(e) => setNewCaseName(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setActiveAddForm(null)
+                  setNewCaseName('')
+                }}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="primary-button">
+                Save
+              </button>
+            </div>
+          </form>
+        )}
         {cases.length === 0 ? (
           <p className="muted-text">No cases linked yet.</p>
         ) : (

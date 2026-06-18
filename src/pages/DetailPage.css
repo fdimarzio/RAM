@@ -1,3 +1,5 @@
+@import './EntityPage.css';
+
 .detail-page {
   display: flex;
   flex-direction: column;
@@ -58,6 +60,25 @@
 .detail-section h3 {
   margin: 0 0 8px;
   font-size: 15px;
+}
+
+.detail-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.detail-section-header h3 {
+  margin: 0;
+}
+
+.quick-add-form {
+  background: #faf9f5;
+  border: 1px solid #e6e2d8;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
 }
 
 .simple-list {
