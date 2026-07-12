@@ -1,0 +1,12 @@
+.dashboard { display: flex; flex-direction: column; gap: 20px; }
+.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stat-card { background: #faf9f5; border: 1px solid #e6e2d8; border-radius: 10px; padding: 16px; }
+.stat-card .stat-label { font-size: 12px; text-transform: uppercase; color: #8a8a8a; margin: 0 0 6px; }
+.stat-card .stat-value { font-size: 28px; font-weight: 700; margin: 0; color: #1f1f1f; }
+.dashboard-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.dashboard-panel { background: #faf9f5; border: 1px solid #e6e2d8; border-radius: 10px; padding: 16px; }
+.dashboard-panel h3 { margin: 0 0 12px; font-size: 15px; }
+.pipeline-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #f0eee6; font-size: 14px; }
+.pipeline-row:last-child { border-bottom: none; }
+.recent-event-item { padding: 7px 0; border-bottom: 1px solid #f0eee6; font-size: 14px; }
+.recent-event-item:last-child { border-bottom: none; }

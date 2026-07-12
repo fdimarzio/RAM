@@ -186,3 +186,119 @@
 .checkbox-item input[type='checkbox'] {
   width: auto;
 }
+
+.search-input {
+  width: 100%;
+  max-width: 320px;
+  border: 1px solid #d8d4cb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  margin-bottom: 4px;
+}
+
+/* Opportunity stages */
+.status-qualifying { background: #e8f4fd; color: #1565c0; }
+.status-proposal { background: #fff3e0; color: #e65100; }
+.status-negotiation { background: #fce4ec; color: #ad1457; }
+.status-closed_won { background: #e3f5e7; color: #1f7a3d; }
+.status-closed_lost { background: #f0eee6; color: #6b6b6b; }
+.status-new { background: #f3f0ff; color: #5b3df0; }
+
+/* Opportunity / case statuses */
+.status-won { background: #e3f5e7; color: #1f7a3d; }
+.status-lost { background: #f0eee6; color: #6b6b6b; }
+.status-on_hold { background: #fff3d6; color: #93650b; }
+.status-open { background: #e8f4fd; color: #1565c0; }
+.status-closed { background: #f0eee6; color: #6b6b6b; }
+.status-in_progress { background: #fff3d6; color: #93650b; }
+
+/* Task statuses */
+.status-pending { background: #f3f0ff; color: #5b3df0; }
+.status-done { background: #e3f5e7; color: #1f7a3d; }
+
+/* Priority */
+.status-high { background: #fdecea; color: #9b2c2c; }
+.status-medium { background: #fff3d6; color: #93650b; }
+.status-low { background: #f0eee6; color: #6b6b6b; }
+
+/* Products */
+.status-discontinued { background: #f0eee6; color: #6b6b6b; }
+
+/* Login page */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-form h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+.login-form .form-grid {
+  grid-template-columns: 1fr;
+}
+
+.info-banner {
+  background: #eef6ff;
+  color: #1565c0;
+  border: 1px solid #bfe0fb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* Export button */
+.export-button {
+  background: #ffffff;
+  color: #1f1f1f;
+  border: 1px solid #d8d4cb;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.export-button:hover {
+  background: #f0eee6;
+}
+
+/* Filter segment (e.g. All / Overdue / Due This Week) */
+.filter-segment {
+  display: flex;
+  gap: 6px;
+}
+
+.filter-segment button {
+  background: #ffffff;
+  color: #4a4a4a;
+  border: 1px solid #d8d4cb;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.filter-segment button.active {
+  background: #5b3df0;
+  color: #ffffff;
+  border-color: #5b3df0;
+}
+
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}

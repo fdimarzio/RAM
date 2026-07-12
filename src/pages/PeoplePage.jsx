@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { exportRowsToCsv } from '../lib/exportCsv.js'
 import './EntityPage.css'
 
 const EMPTY_FORM = {
   id: null,
-  full_name: '',
+  first_name: '',
+  middle_name: '',
+  last_name: '',
   title: '',
   email: '',
   phone: '',
@@ -23,6 +26,7 @@ function PeoplePage({ onSelectPerson }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
 
   async function loadPeople() {
     setLoading(true)
@@ -77,7 +81,9 @@ function PeoplePage({ onSelectPerson }) {
     setError(null)
 
     const payload = {
-      full_name: form.full_name,
+      first_name: form.first_name,
+      middle_name: form.middle_name || null,
+      last_name: form.last_name || null,
       title: form.title || null,
       email: form.email || null,
       phone: form.phone || null,
@@ -121,6 +127,24 @@ function PeoplePage({ onSelectPerson }) {
     }
   }
 
+  const filtered = people.filter((p) => {
+    const q = search.toLowerCase()
+    return (
+      (p.full_name || '').toLowerCase().includes(q) ||
+      (p.title || '').toLowerCase().includes(q) ||
+      (p.email || '').toLowerCase().includes(q) ||
+      (p.companies?.name || '').toLowerCase().includes(q)
+    )
+  })
+
+  function handleExport() {
+    const rows = filtered.map(({ companies, ...rest }) => ({
+      ...rest,
+      company_name: companies?.name || ''
+    }))
+    exportRowsToCsv('people', rows)
+  }
+
   return (
     <div className="entity-page">
       <div className="entity-page-header">
@@ -132,16 +156,42 @@ function PeoplePage({ onSelectPerson }) {
 
       {error && <div className="error-banner">{error}</div>}
 
+      <div className="list-toolbar">
+        <input
+          className="search-input"
+          placeholder="Search people..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button className="export-button" onClick={handleExport}>
+          Export CSV
+        </button>
+      </div>
+
       {showForm && (
         <form className="entity-form" onSubmit={handleSubmit}>
           <h3>{form.id ? 'Edit Person' : 'New Person'}</h3>
           <div className="form-grid">
             <label>
-              Full Name *
+              First Name *
               <input
                 required
-                value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                value={form.first_name}
+                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+              />
+            </label>
+            <label>
+              Middle Name
+              <input
+                value={form.middle_name || ''}
+                onChange={(e) => setForm({ ...form, middle_name: e.target.value })}
+              />
+            </label>
+            <label>
+              Last Name
+              <input
+                value={form.last_name || ''}
+                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
               />
             </label>
             <label>
@@ -243,7 +293,7 @@ function PeoplePage({ onSelectPerson }) {
             </tr>
           </thead>
           <tbody>
-            {people.map((p) => (
+            {filtered.map((p) => (
               <tr key={p.id}>
                 <td>
                   <button className="link-button" onClick={() => onSelectPerson(p.id)}>

@@ -159,6 +159,18 @@ CREATE TABLE ram.case_opportunities (
 );
 
 -- ---------------------------------------------------------------------
+-- 6b. PERSON <-> PERSON SOCIAL GRAPH (added via sql/migrations/20260711_person_relationships.sql)
+-- ---------------------------------------------------------------------
+CREATE TABLE ram.person_relationships (
+  person_id uuid REFERENCES ram.people(id) ON DELETE CASCADE,
+  related_person_id uuid REFERENCES ram.people(id) ON DELETE CASCADE,
+  relationship_type text,
+  PRIMARY KEY (person_id, related_person_id)
+);
+
+COMMENT ON TABLE ram.person_relationships IS 'Direct associations between two people (colleague, mentor, referred by, etc.).';
+
+-- ---------------------------------------------------------------------
 -- 7. TASKS & FOLLOW-UP ACTIONS
 -- ---------------------------------------------------------------------
 CREATE TABLE ram.tasks (
@@ -186,7 +198,8 @@ COMMENT ON TABLE ram.tasks IS 'Commitments, reminders, action items, and next st
 -- ---------------------------------------------------------------------
 CREATE TABLE ram.notes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  entity_type text NOT NULL CHECK (entity_type IN ('company', 'person', 'opportunity', 'task')),
+  -- widened via sql/migrations/20260711_notes_entity_types.sql to also allow case/event/product
+  entity_type text NOT NULL CHECK (entity_type IN ('company', 'person', 'opportunity', 'task', 'case', 'event', 'product')),
   entity_id uuid NOT NULL,
   body text NOT NULL,
   author text DEFAULT 'Unassigned',
@@ -194,7 +207,7 @@ CREATE TABLE ram.notes (
   updated_at timestamptz DEFAULT now()
 );
 
-COMMENT ON TABLE ram.notes IS 'Timestamped, attributable notes attachable to companies, people, opportunities, or tasks. entity_type + entity_id form a polymorphic reference (no FK constraint, validated at app layer).';
+COMMENT ON TABLE ram.notes IS 'Timestamped, attributable notes attachable to companies, people, opportunities, tasks, cases, events, or products. entity_type + entity_id form a polymorphic reference (no FK constraint, validated at app layer).';
 
 -- =====================================================================
 -- INDEXES for common lookups / foreign keys
@@ -228,6 +241,7 @@ ALTER TABLE ram.case_companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ram.case_opportunities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ram.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ram.notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ram.person_relationships ENABLE ROW LEVEL SECURITY;
 
 -- Authenticated-only policy, applied per table (read + write for any logged-in user)
 CREATE POLICY "Authenticated users full access" ON ram.companies FOR ALL TO authenticated USING (true) WITH CHECK (true);
@@ -243,6 +257,7 @@ CREATE POLICY "Authenticated users full access" ON ram.case_companies FOR ALL TO
 CREATE POLICY "Authenticated users full access" ON ram.case_opportunities FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Authenticated users full access" ON ram.tasks FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Authenticated users full access" ON ram.notes FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users full access" ON ram.person_relationships FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- Grant schema usage to the standard Supabase roles so PostgREST can see it
 GRANT USAGE ON SCHEMA ram TO authenticated, anon, service_role;

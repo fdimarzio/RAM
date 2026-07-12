@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { exportRowsToCsv } from '../lib/exportCsv.js'
 import './EntityPage.css'
 
 const EMPTY_FORM = {
@@ -34,6 +35,7 @@ function EventsPage({ onSelectEvent }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
 
   async function loadEvents() {
     setLoading(true)
@@ -171,6 +173,24 @@ function EventsPage({ onSelectEvent }) {
     }
   }
 
+  const filtered = events.filter((ev) => {
+    const q = search.toLowerCase()
+    return (
+      (ev.event_type || '').toLowerCase().includes(q) ||
+      (ev.companies?.name || '').toLowerCase().includes(q)
+    )
+  })
+
+  function handleExport() {
+    const rows = filtered.map(({ companies, opportunities, event_participants, ...rest }) => ({
+      ...rest,
+      company_name: companies?.name || '',
+      opportunity_name: opportunities?.name || '',
+      participants: (event_participants || []).map((ep) => ep.people?.full_name).filter(Boolean).join('; ')
+    }))
+    exportRowsToCsv('events', rows)
+  }
+
   return (
     <div className="entity-page">
       <div className="entity-page-header">
@@ -181,6 +201,18 @@ function EventsPage({ onSelectEvent }) {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+
+      <div className="list-toolbar">
+        <input
+          className="search-input"
+          placeholder="Search events..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button className="export-button" onClick={handleExport}>
+          Export CSV
+        </button>
+      </div>
 
       {showForm && (
         <form className="entity-form" onSubmit={handleSubmit}>
@@ -307,8 +339,7 @@ function EventsPage({ onSelectEvent }) {
         <table className="entity-table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Type</th>
+              <th>Event</th>
               <th>Company</th>
               <th>Participants</th>
               <th>Follow-up?</th>
@@ -316,14 +347,14 @@ function EventsPage({ onSelectEvent }) {
             </tr>
           </thead>
           <tbody>
-            {events.map((ev) => (
+            {filtered.map((ev) => (
               <tr key={ev.id}>
                 <td>
                   <button className="link-button" onClick={() => onSelectEvent(ev.id)}>
-                    {new Date(ev.event_date).toLocaleString()}
+                    {ev.event_type || 'Event'}
                   </button>
+                  <div className="muted-text">{new Date(ev.event_date).toLocaleString()}</div>
                 </td>
-                <td>{ev.event_type || '—'}</td>
                 <td>{ev.companies?.name || '—'}</td>
                 <td>
                   {(ev.event_participants || []).map((ep) => ep.people?.full_name).join(', ') ||

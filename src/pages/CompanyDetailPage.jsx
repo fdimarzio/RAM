@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import NotesPanel from '../components/NotesPanel.jsx'
 import QuickAddForm from '../components/QuickAddForm.jsx'
+import { buildTimeline } from '../lib/timeline.js'
 import './DetailPage.css'
 
-function CompanyDetailPage({ companyId, onBack }) {
+function CompanyDetailPage({ companyId, onBack, onNavigate }) {
   const [company, setCompany] = useState(null)
   const [people, setPeople] = useState([])
   const [opportunities, setOpportunities] = useState([])
@@ -12,6 +13,7 @@ function CompanyDetailPage({ companyId, onBack }) {
   const [events, setEvents] = useState([])
   const [cases, setCases] = useState([])
   const [allCases, setAllCases] = useState([])
+  const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeAddForm, setActiveAddForm] = useState(null)
@@ -28,7 +30,8 @@ function CompanyDetailPage({ companyId, onBack }) {
       { data: taskData },
       { data: eventData },
       { data: caseLinkData },
-      { data: allCaseData }
+      { data: allCaseData },
+      { data: noteData }
     ] = await Promise.all([
       supabase.from('companies').select('*').eq('id', companyId).single(),
       supabase.from('people').select('*').eq('company_id', companyId).order('full_name'),
@@ -36,7 +39,8 @@ function CompanyDetailPage({ companyId, onBack }) {
       supabase.from('tasks').select('*').eq('company_id', companyId).order('due_date', { ascending: true, nullsFirst: false }),
       supabase.from('events').select('*').eq('company_id', companyId).order('event_date', { ascending: false }),
       supabase.from('case_companies').select('case_id, cases(*)').eq('company_id', companyId),
-      supabase.from('cases').select('id, name').order('name')
+      supabase.from('cases').select('id, name').order('name'),
+      supabase.from('notes').select('id, body, created_at').eq('entity_type', 'company').eq('entity_id', companyId)
     ])
 
     if (companyError) {
@@ -50,6 +54,7 @@ function CompanyDetailPage({ companyId, onBack }) {
     setEvents(eventData || [])
     setCases((caseLinkData || []).map((row) => row.cases).filter(Boolean))
     setAllCases(allCaseData || [])
+    setNotes(noteData || [])
     setLoading(false)
   }
 
@@ -118,6 +123,8 @@ function CompanyDetailPage({ companyId, onBack }) {
   const linkedCaseIds = new Set(cases.map((c) => c.id))
   const unlinkedCases = allCases.filter((c) => !linkedCaseIds.has(c.id))
 
+  const timeline = buildTimeline({ events, notes, opportunities, tasks })
+
   return (
     <div className="detail-page">
       <button className="link-button" onClick={onBack}>
@@ -160,7 +167,10 @@ function CompanyDetailPage({ companyId, onBack }) {
           <ul className="simple-list">
             {people.map((p) => (
               <li key={p.id}>
-                {p.full_name} {p.title && <span className="muted-text">— {p.title}</span>}
+                <button className="link-button" onClick={() => onNavigate('people', p.id)}>
+                  {p.full_name}
+                </button>{' '}
+                {p.title && <span className="muted-text">— {p.title}</span>}
               </li>
             ))}
           </ul>
@@ -194,7 +204,10 @@ function CompanyDetailPage({ companyId, onBack }) {
           <ul className="simple-list">
             {opportunities.map((o) => (
               <li key={o.id}>
-                {o.name} <span className="muted-text">— {o.stage?.replace('_', ' ')}, {o.status}</span>
+                <button className="link-button" onClick={() => onNavigate('opportunities', o.id)}>
+                  {o.name}
+                </button>{' '}
+                <span className="muted-text">— {o.stage?.replace('_', ' ')}, {o.status}</span>
               </li>
             ))}
           </ul>
@@ -228,7 +241,10 @@ function CompanyDetailPage({ companyId, onBack }) {
           <ul className="simple-list">
             {tasks.map((t) => (
               <li key={t.id}>
-                {t.name} <span className="muted-text">— due {t.due_date || 'no date'}, {t.status}</span>
+                <button className="link-button" onClick={() => onNavigate('tasks', t.id)}>
+                  {t.name}
+                </button>{' '}
+                <span className="muted-text">— due {t.due_date || 'no date'}, {t.status}</span>
               </li>
             ))}
           </ul>
@@ -262,7 +278,9 @@ function CompanyDetailPage({ companyId, onBack }) {
           <ul className="simple-list">
             {events.map((ev) => (
               <li key={ev.id}>
-                {new Date(ev.event_date).toLocaleDateString()}{' '}
+                <button className="link-button" onClick={() => onNavigate('events', ev.id)}>
+                  {new Date(ev.event_date).toLocaleDateString()}
+                </button>{' '}
                 <span className="muted-text">— {ev.event_type || 'meeting'}</span>
               </li>
             ))}
@@ -314,7 +332,10 @@ function CompanyDetailPage({ companyId, onBack }) {
           <ul className="simple-list">
             {cases.map((c) => (
               <li key={c.id}>
-                {c.name} <span className="muted-text">— {c.status}</span>{' '}
+                <button className="link-button" onClick={() => onNavigate('cases', c.id)}>
+                  {c.name}
+                </button>{' '}
+                <span className="muted-text">— {c.status}</span>{' '}
                 <button className="link-button danger" onClick={() => handleUnlinkCase(c.id)}>
                   Unlink
                 </button>
@@ -331,6 +352,32 @@ function CompanyDetailPage({ companyId, onBack }) {
               </option>
             ))}
           </select>
+        )}
+      </section>
+
+      <section className="detail-section">
+        <h3>Timeline ({timeline.length})</h3>
+        {timeline.length === 0 ? (
+          <p className="muted-text">No timeline activity yet.</p>
+        ) : (
+          <ul className="timeline-list">
+            {timeline.map((item, index) => (
+              <li key={`${item.kind}-${item.entityId || index}`} className="timeline-item">
+                <span className="timeline-date">{new Date(item.date).toLocaleDateString()}</span>
+                <span className={`timeline-kind timeline-kind-${item.kind}`}>{item.kind}</span>
+                {item.entityType && item.entityId ? (
+                  <button
+                    className="link-button"
+                    onClick={() => onNavigate(item.entityType, item.entityId)}
+                  >
+                    {item.label}
+                  </button>
+                ) : (
+                  <span>{item.label}</span>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

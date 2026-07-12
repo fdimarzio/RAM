@@ -6,16 +6,15 @@ import './EntityPage.css'
 const EMPTY_FORM = {
   id: null,
   name: '',
-  case_type: '',
+  category: '',
   description: '',
-  status: 'open',
-  start_date: '',
-  target_completion_date: '',
-  notes: ''
+  pricing_info: '',
+  notes: '',
+  status: 'active'
 }
 
-function CasesPage({ onSelectCase }) {
-  const [cases, setCases] = useState([])
+function ProductsServicesPage({ onSelectProduct }) {
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -23,24 +22,24 @@ function CasesPage({ onSelectCase }) {
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
 
-  async function loadCases() {
+  async function loadProducts() {
     setLoading(true)
     setError(null)
     const { data, error: fetchError } = await supabase
-      .from('cases')
+      .from('products_services')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('name', { ascending: true })
 
     if (fetchError) {
       setError(fetchError.message)
     } else {
-      setCases(data || [])
+      setProducts(data || [])
     }
     setLoading(false)
   }
 
   useEffect(() => {
-    loadCases()
+    loadProducts()
   }, [])
 
   function openCreateForm() {
@@ -48,12 +47,8 @@ function CasesPage({ onSelectCase }) {
     setShowForm(true)
   }
 
-  function openEditForm(c) {
-    setForm({
-      ...c,
-      start_date: c.start_date || '',
-      target_completion_date: c.target_completion_date || ''
-    })
+  function openEditForm(product) {
+    setForm(product)
     setShowForm(true)
   }
 
@@ -69,20 +64,22 @@ function CasesPage({ onSelectCase }) {
 
     const payload = {
       name: form.name,
-      case_type: form.case_type || null,
+      category: form.category || null,
       description: form.description || null,
-      status: form.status || 'open',
-      start_date: form.start_date || null,
-      target_completion_date: form.target_completion_date || null,
-      notes: form.notes || null
+      pricing_info: form.pricing_info || null,
+      notes: form.notes || null,
+      status: form.status || 'active'
     }
 
     let submitError
     if (form.id) {
-      const { error: updateError } = await supabase.from('cases').update(payload).eq('id', form.id)
+      const { error: updateError } = await supabase
+        .from('products_services')
+        .update(payload)
+        .eq('id', form.id)
       submitError = updateError
     } else {
-      const { error: insertError } = await supabase.from('cases').insert(payload)
+      const { error: insertError } = await supabase.from('products_services').insert(payload)
       submitError = insertError
     }
 
@@ -94,37 +91,37 @@ function CasesPage({ onSelectCase }) {
 
     setSaving(false)
     closeForm()
-    loadCases()
+    loadProducts()
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this case? This cannot be undone.')) return
-    const { error: deleteError } = await supabase.from('cases').delete().eq('id', id)
+    if (!window.confirm('Delete this product/service? This cannot be undone.')) return
+    const { error: deleteError } = await supabase.from('products_services').delete().eq('id', id)
     if (deleteError) {
       setError(deleteError.message)
     } else {
-      loadCases()
+      loadProducts()
     }
   }
 
-  const filtered = cases.filter((c) => {
+  const filtered = products.filter((p) => {
     const q = search.toLowerCase()
     return (
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.case_type || '').toLowerCase().includes(q)
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.category || '').toLowerCase().includes(q)
     )
   })
 
   function handleExport() {
-    exportRowsToCsv('cases', filtered)
+    exportRowsToCsv('products_services', filtered)
   }
 
   return (
     <div className="entity-page">
       <div className="entity-page-header">
-        <h2>Cases</h2>
+        <h2>Products &amp; Services</h2>
         <button className="primary-button" onClick={openCreateForm}>
-          + New Case
+          + New Product/Service
         </button>
       </div>
 
@@ -133,7 +130,7 @@ function CasesPage({ onSelectCase }) {
       <div className="list-toolbar">
         <input
           className="search-input"
-          placeholder="Search cases..."
+          placeholder="Search products & services..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -144,7 +141,7 @@ function CasesPage({ onSelectCase }) {
 
       {showForm && (
         <form className="entity-form" onSubmit={handleSubmit}>
-          <h3>{form.id ? 'Edit Case' : 'New Case'}</h3>
+          <h3>{form.id ? 'Edit Product/Service' : 'New Product/Service'}</h3>
           <div className="form-grid">
             <label>
               Name *
@@ -155,39 +152,22 @@ function CasesPage({ onSelectCase }) {
               />
             </label>
             <label>
-              Type
+              Category
               <input
-                placeholder="e.g. Onboarding, Issue, Initiative"
-                value={form.case_type || ''}
-                onChange={(e) => setForm({ ...form, case_type: e.target.value })}
+                value={form.category || ''}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
               />
             </label>
             <label>
               Status
               <select
-                value={form.status || 'open'}
+                value={form.status || 'active'}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="closed">Closed</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="discontinued">Discontinued</option>
               </select>
-            </label>
-            <label>
-              Start Date
-              <input
-                type="date"
-                value={form.start_date || ''}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-              />
-            </label>
-            <label>
-              Target Completion Date
-              <input
-                type="date"
-                value={form.target_completion_date || ''}
-                onChange={(e) => setForm({ ...form, target_completion_date: e.target.value })}
-              />
             </label>
             <label className="full-width">
               Description
@@ -195,6 +175,14 @@ function CasesPage({ onSelectCase }) {
                 rows={2}
                 value={form.description || ''}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </label>
+            <label className="full-width">
+              Pricing Info
+              <textarea
+                rows={2}
+                value={form.pricing_info || ''}
+                onChange={(e) => setForm({ ...form, pricing_info: e.target.value })}
               />
             </label>
             <label className="full-width">
@@ -218,42 +206,38 @@ function CasesPage({ onSelectCase }) {
       )}
 
       {loading ? (
-        <p className="muted-text">Loading cases...</p>
-      ) : cases.length === 0 ? (
-        <p className="muted-text">No cases yet. Click "+ New Case" to add one.</p>
+        <p className="muted-text">Loading products &amp; services...</p>
+      ) : products.length === 0 ? (
+        <p className="muted-text">
+          No products/services yet. Click "+ New Product/Service" to add one.
+        </p>
       ) : (
         <table className="entity-table">
           <thead>
             <tr>
               <th>Name</th>
-              <th>Type</th>
+              <th>Category</th>
               <th>Status</th>
-              <th>Start Date</th>
-              <th>Target Completion</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c) => (
-              <tr key={c.id}>
+            {filtered.map((p) => (
+              <tr key={p.id}>
                 <td>
-                  <button className="link-button" onClick={() => onSelectCase(c.id)}>
-                    {c.name}
+                  <button className="link-button" onClick={() => onSelectProduct(p.id)}>
+                    {p.name}
                   </button>
                 </td>
-                <td>{c.case_type || '—'}</td>
+                <td>{p.category || '—'}</td>
                 <td>
-                  <span className={`status-badge status-${c.status}`}>
-                    {c.status?.replace('_', ' ')}
-                  </span>
+                  <span className={`status-badge status-${p.status}`}>{p.status}</span>
                 </td>
-                <td>{c.start_date || '—'}</td>
-                <td>{c.target_completion_date || '—'}</td>
                 <td className="row-actions">
-                  <button className="link-button" onClick={() => openEditForm(c)}>
+                  <button className="link-button" onClick={() => openEditForm(p)}>
                     Edit
                   </button>
-                  <button className="link-button danger" onClick={() => handleDelete(c.id)}>
+                  <button className="link-button danger" onClick={() => handleDelete(p.id)}>
                     Delete
                   </button>
                 </td>
@@ -266,4 +250,4 @@ function CasesPage({ onSelectCase }) {
   )
 }
 
-export default CasesPage
+export default ProductsServicesPage

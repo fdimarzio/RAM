@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { exportRowsToCsv } from '../lib/exportCsv.js'
 import './EntityPage.css'
 
 const EMPTY_FORM = {
@@ -27,6 +28,7 @@ function OpportunitiesPage({ onSelectOpportunity }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
 
   async function loadOpportunities() {
     setLoading(true)
@@ -131,6 +133,25 @@ function OpportunitiesPage({ onSelectOpportunity }) {
     }
   }
 
+  const filtered = opportunities.filter((o) => {
+    const q = search.toLowerCase()
+    return (
+      (o.name || '').toLowerCase().includes(q) ||
+      (o.opportunity_type || '').toLowerCase().includes(q) ||
+      (o.companies?.name || '').toLowerCase().includes(q) ||
+      (o.people?.full_name || '').toLowerCase().includes(q)
+    )
+  })
+
+  function handleExport() {
+    const rows = filtered.map(({ companies, people, ...rest }) => ({
+      ...rest,
+      company_name: companies?.name || '',
+      person_name: people?.full_name || ''
+    }))
+    exportRowsToCsv('opportunities', rows)
+  }
+
   return (
     <div className="entity-page">
       <div className="entity-page-header">
@@ -141,6 +162,18 @@ function OpportunitiesPage({ onSelectOpportunity }) {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+
+      <div className="list-toolbar">
+        <input
+          className="search-input"
+          placeholder="Search opportunities..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button className="export-button" onClick={handleExport}>
+          Export CSV
+        </button>
+      </div>
 
       {showForm && (
         <form className="entity-form" onSubmit={handleSubmit}>
@@ -281,7 +314,7 @@ function OpportunitiesPage({ onSelectOpportunity }) {
             </tr>
           </thead>
           <tbody>
-            {opportunities.map((o) => (
+            {filtered.map((o) => (
               <tr key={o.id}>
                 <td>
                   <button className="link-button" onClick={() => onSelectOpportunity(o.id)}>

@@ -1,55 +1,137 @@
+/* ── Layout ─────────────────────────────────────────────── */
+
 .app {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.app-header {
-  margin-bottom: 16px;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.app-subtitle {
-  margin: 4px 0 0;
-  color: #6b6b6b;
-  font-size: 14px;
-}
-
-.app-nav {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
+  min-height: 100%;
+  background: #f7f5f0;
 }
 
-.nav-button {
-  border: 1px solid #d8d4cb;
+/* ── Sidebar ─────────────────────────────────────────────── */
+
+.sidebar {
+  width: 216px;
+  min-width: 216px;
   background: #ffffff;
-  border-radius: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-size: 14px;
+  border-right: 1px solid #e6e2d8;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
-.nav-button.active {
-  background: #5b3df0;
-  color: #ffffff;
-  border-color: #5b3df0;
+.sidebar-brand {
+  padding: 22px 18px 18px;
+  border-bottom: 1px solid #e6e2d8;
 }
+
+.sidebar-brand h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+  color: #5b3df0;
+}
+
+.sidebar-brand p {
+  font-size: 11px;
+  color: #9a9a9a;
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 8px;
+  gap: 2px;
+  flex: 1;
+}
+
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #b0aca4;
+  padding: 10px 12px 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #4a4a4a;
+  font-size: 13.5px;
+  font-weight: 400;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.1s, color 0.1s;
+}
+
+.nav-item:hover {
+  background: #f0eee6;
+  color: #1f1f1f;
+}
+
+.nav-item.active {
+  background: #eeebff;
+  color: #5b3df0;
+  font-weight: 500;
+  box-shadow: inset 3px 0 0 #5b3df0;
+  border-radius: 0 8px 8px 0;
+}
+
+/* ── Main content ────────────────────────────────────────── */
 
 .app-main {
-  background: #ffffff;
-  border: 1px solid #e6e2d8;
-  border-radius: 12px;
-  padding: 24px;
+  flex: 1;
+  padding: 32px 36px;
+  min-width: 0;
+  overflow-y: auto;
 }
 
 .placeholder-note {
   color: #8a8a8a;
   font-size: 13px;
+}
+
+/* ── Sidebar footer (user / sign out) ───────────────────────── */
+
+.sidebar-footer {
+  border-top: 1px solid #e6e2d8;
+  padding: 12px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-user-email {
+  font-size: 12px;
+  color: #6b6b6b;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signout-button {
+  background: #ffffff;
+  color: #1f1f1f;
+  border: 1px solid #d8d4cb;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.signout-button:hover {
+  background: #f0eee6;
 }

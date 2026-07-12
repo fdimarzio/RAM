@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { exportRowsToCsv } from '../lib/exportCsv.js'
 import './EntityPage.css'
 
 const EMPTY_FORM = {
@@ -20,6 +21,7 @@ function CompaniesPage({ onSelectCompany }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
 
   async function loadCompanies() {
     setLoading(true)
@@ -104,6 +106,18 @@ function CompaniesPage({ onSelectCompany }) {
     }
   }
 
+  const filtered = companies.filter((c) => {
+    const q = search.toLowerCase()
+    return (
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.industry || '').toLowerCase().includes(q)
+    )
+  })
+
+  function handleExport() {
+    exportRowsToCsv('companies', filtered)
+  }
+
   return (
     <div className="entity-page">
       <div className="entity-page-header">
@@ -114,6 +128,18 @@ function CompaniesPage({ onSelectCompany }) {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+
+      <div className="list-toolbar">
+        <input
+          className="search-input"
+          placeholder="Search companies..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button className="export-button" onClick={handleExport}>
+          Export CSV
+        </button>
+      </div>
 
       {showForm && (
         <form className="entity-form" onSubmit={handleSubmit}>
@@ -203,7 +229,7 @@ function CompaniesPage({ onSelectCompany }) {
             </tr>
           </thead>
           <tbody>
-            {companies.map((c) => (
+            {filtered.map((c) => (
               <tr key={c.id}>
                 <td>
                   <button className="link-button" onClick={() => onSelectCompany(c.id)}>

@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { filterTasksBySegment } from '../lib/taskFilters.js'
+import { exportRowsToCsv } from '../lib/exportCsv.js'
 import './EntityPage.css'
+
+const SEGMENTS = [
+  { id: 'all', label: 'All' },
+  { id: 'overdue', label: 'Overdue' },
+  { id: 'due_this_week', label: 'Due This Week' }
+]
 
 const EMPTY_FORM = {
   id: null,
@@ -29,6 +37,8 @@ function TasksPage({ onSelectTask }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
+  const [segment, setSegment] = useState('all')
 
   async function loadTasks() {
     setLoading(true)
@@ -145,6 +155,27 @@ function TasksPage({ onSelectTask }) {
     }
   }
 
+  const filtered = filterTasksBySegment(tasks, segment).filter((t) => {
+    const q = search.toLowerCase()
+    return (
+      (t.name || '').toLowerCase().includes(q) ||
+      (t.owner || '').toLowerCase().includes(q) ||
+      (t.people?.full_name || '').toLowerCase().includes(q) ||
+      (t.companies?.name || '').toLowerCase().includes(q)
+    )
+  })
+
+  function handleExport() {
+    const rows = filtered.map(({ people, companies, opportunities, cases, ...rest }) => ({
+      ...rest,
+      person_name: people?.full_name || '',
+      company_name: companies?.name || '',
+      opportunity_name: opportunities?.name || '',
+      case_name: cases?.name || ''
+    }))
+    exportRowsToCsv('tasks', rows)
+  }
+
   return (
     <div className="entity-page">
       <div className="entity-page-header">
@@ -155,6 +186,29 @@ function TasksPage({ onSelectTask }) {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+
+      <div className="list-toolbar">
+        <input
+          className="search-input"
+          placeholder="Search tasks..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="filter-segment">
+          {SEGMENTS.map((s) => (
+            <button
+              key={s.id}
+              className={segment === s.id ? 'active' : ''}
+              onClick={() => setSegment(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <button className="export-button" onClick={handleExport}>
+          Export CSV
+        </button>
+      </div>
 
       {showForm && (
         <form className="entity-form" onSubmit={handleSubmit}>
@@ -313,7 +367,7 @@ function TasksPage({ onSelectTask }) {
             </tr>
           </thead>
           <tbody>
-            {tasks.map((t) => {
+            {filtered.map((t) => {
               const linkedTo =
                 t.people?.full_name ||
                 t.companies?.name ||

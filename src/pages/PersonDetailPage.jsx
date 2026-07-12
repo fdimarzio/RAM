@@ -2,15 +2,21 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import NotesPanel from '../components/NotesPanel.jsx'
 import QuickAddForm from '../components/QuickAddForm.jsx'
+import { buildTimeline } from '../lib/timeline.js'
 import './DetailPage.css'
 
-function PersonDetailPage({ personId, onBack }) {
+function PersonDetailPage({ personId, onBack, onNavigate }) {
   const [person, setPerson] = useState(null)
   const [opportunities, setOpportunities] = useState([])
   const [tasks, setTasks] = useState([])
   const [events, setEvents] = useState([])
   const [cases, setCases] = useState([])
   const [allCases, setAllCases] = useState([])
+  const [relatedPeople, setRelatedPeople] = useState([])
+  const [allPeople, setAllPeople] = useState([])
+  const [newRelatedPersonId, setNewRelatedPersonId] = useState('')
+  const [newRelationType, setNewRelationType] = useState('')
+  const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeAddForm, setActiveAddForm] = useState(null)
@@ -26,14 +32,27 @@ function PersonDetailPage({ personId, onBack }) {
       { data: taskData },
       { data: eventLinkData },
       { data: caseLinkData },
-      { data: allCaseData }
+      { data: allCaseData },
+      { data: relatedPeopleData },
+      { data: allPeopleData },
+      { data: noteData }
     ] = await Promise.all([
-      supabase.from('people').select('*, companies(name)').eq('id', personId).single(),
+      supabase
+        .from('people')
+        .select('*, companies(name), reporting_manager:reporting_manager_id(id, full_name)')
+        .eq('id', personId)
+        .single(),
       supabase.from('opportunities').select('*').eq('person_id', personId).order('created_at', { ascending: false }),
       supabase.from('tasks').select('*').eq('person_id', personId).order('due_date', { ascending: true, nullsFirst: false }),
       supabase.from('event_participants').select('event_id, events(*)').eq('person_id', personId),
       supabase.from('case_people').select('case_id, cases(*)').eq('person_id', personId),
-      supabase.from('cases').select('id, name').order('name')
+      supabase.from('cases').select('id, name').order('name'),
+      supabase
+        .from('person_relationships')
+        .select('related_person_id, relationship_type, people:related_person_id(id, full_name, title)')
+        .eq('person_id', personId),
+      supabase.from('people').select('id, full_name').order('full_name'),
+      supabase.from('notes').select('id, body, created_at').eq('entity_type', 'person').eq('entity_id', personId)
     ])
 
     if (personError) {
@@ -46,6 +65,13 @@ function PersonDetailPage({ personId, onBack }) {
     setEvents((eventLinkData || []).map((row) => row.events).filter(Boolean))
     setCases((caseLinkData || []).map((row) => row.cases).filter(Boolean))
     setAllCases(allCaseData || [])
+    setRelatedPeople(
+      (relatedPeopleData || [])
+        .map((row) => (row.people ? { ...row.people, relationship_type: row.relationship_type } : null))
+        .filter(Boolean)
+    )
+    setAllPeople((allPeopleData || []).filter((p) => p.id !== personId))
+    setNotes(noteData || [])
     setLoading(false)
   }
 
@@ -115,12 +141,47 @@ function PersonDetailPage({ personId, onBack }) {
     loadAll()
   }
 
+  async function handleLinkRelatedPerson(e) {
+    e.preventDefault()
+    if (!newRelatedPersonId) return
+    const { error: linkError } = await supabase.from('person_relationships').insert({
+      person_id: personId,
+      related_person_id: newRelatedPersonId,
+      relationship_type: newRelationType.trim() || null
+    })
+    if (linkError) {
+      setError(linkError.message)
+    } else {
+      setNewRelatedPersonId('')
+      setNewRelationType('')
+      loadAll()
+    }
+  }
+
+  async function handleUnlinkRelatedPerson(relatedPersonId) {
+    const { error: unlinkError } = await supabase
+      .from('person_relationships')
+      .delete()
+      .eq('person_id', personId)
+      .eq('related_person_id', relatedPersonId)
+    if (unlinkError) {
+      setError(unlinkError.message)
+    } else {
+      loadAll()
+    }
+  }
+
   if (loading) return <p className="muted-text">Loading person...</p>
   if (error && !person) return <div className="error-banner">{error}</div>
   if (!person) return <p className="muted-text">Person not found.</p>
 
   const linkedCaseIds = new Set(cases.map((c) => c.id))
   const unlinkedCases = allCases.filter((c) => !linkedCaseIds.has(c.id))
+
+  const linkedRelatedIds = new Set(relatedPeople.map((p) => p.id))
+  const unlinkedRelatedPeople = allPeople.filter((p) => !linkedRelatedIds.has(p.id))
+
+  const timeline = buildTimeline({ events, notes, opportunities, tasks })
 
   return (
     <div className="detail-page">
@@ -139,12 +200,32 @@ function PersonDetailPage({ personId, onBack }) {
 
       <div className="detail-summary-grid">
         <div>
+          <strong>First Name</strong>
+          <p>{person.first_name || '—'}</p>
+        </div>
+        <div>
+          <strong>Middle Name</strong>
+          <p>{person.middle_name || '—'}</p>
+        </div>
+        <div>
+          <strong>Last Name</strong>
+          <p>{person.last_name || '—'}</p>
+        </div>
+        <div>
           <strong>Title</strong>
           <p>{person.title || '—'}</p>
         </div>
         <div>
           <strong>Company</strong>
-          <p>{person.companies?.name || '—'}</p>
+          <p>
+            {person.company_id ? (
+              <button className="link-button" onClick={() => onNavigate('companies', person.company_id)}>
+                {person.companies?.name || '—'}
+              </button>
+            ) : (
+              person.companies?.name || '—'
+            )}
+          </p>
         </div>
         <div>
           <strong>Email</strong>
@@ -158,6 +239,19 @@ function PersonDetailPage({ personId, onBack }) {
           <strong>Relationship Type</strong>
           <p>{person.relationship_type || '—'}</p>
         </div>
+        {person.reporting_manager_id && (
+          <div>
+            <strong>Manager</strong>
+            <p>
+              <button
+                className="link-button"
+                onClick={() => onNavigate('people', person.reporting_manager_id)}
+              >
+                {person.reporting_manager?.full_name || '—'}
+              </button>
+            </p>
+          </div>
+        )}
       </div>
       {person.personal_notes && (
         <div className="detail-block">
@@ -193,7 +287,10 @@ function PersonDetailPage({ personId, onBack }) {
           <ul className="simple-list">
             {opportunities.map((o) => (
               <li key={o.id}>
-                {o.name} <span className="muted-text">— {o.stage?.replace('_', ' ')}, {o.status}</span>
+                <button className="link-button" onClick={() => onNavigate('opportunities', o.id)}>
+                  {o.name}
+                </button>{' '}
+                <span className="muted-text">— {o.stage?.replace('_', ' ')}, {o.status}</span>
               </li>
             ))}
           </ul>
@@ -227,7 +324,10 @@ function PersonDetailPage({ personId, onBack }) {
           <ul className="simple-list">
             {tasks.map((t) => (
               <li key={t.id}>
-                {t.name} <span className="muted-text">— due {t.due_date || 'no date'}, {t.status}</span>
+                <button className="link-button" onClick={() => onNavigate('tasks', t.id)}>
+                  {t.name}
+                </button>{' '}
+                <span className="muted-text">— due {t.due_date || 'no date'}, {t.status}</span>
               </li>
             ))}
           </ul>
@@ -258,7 +358,9 @@ function PersonDetailPage({ personId, onBack }) {
           <ul className="simple-list">
             {events.map((ev) => (
               <li key={ev.id}>
-                {new Date(ev.event_date).toLocaleDateString()}{' '}
+                <button className="link-button" onClick={() => onNavigate('events', ev.id)}>
+                  {new Date(ev.event_date).toLocaleDateString()}
+                </button>{' '}
                 <span className="muted-text">— {ev.event_type || 'meeting'}</span>
               </li>
             ))}
@@ -310,7 +412,10 @@ function PersonDetailPage({ personId, onBack }) {
           <ul className="simple-list">
             {cases.map((c) => (
               <li key={c.id}>
-                {c.name} <span className="muted-text">— {c.status}</span>{' '}
+                <button className="link-button" onClick={() => onNavigate('cases', c.id)}>
+                  {c.name}
+                </button>{' '}
+                <span className="muted-text">— {c.status}</span>{' '}
                 <button className="link-button danger" onClick={() => handleUnlinkCase(c.id)}>
                   Unlink
                 </button>
@@ -327,6 +432,89 @@ function PersonDetailPage({ personId, onBack }) {
               </option>
             ))}
           </select>
+        )}
+      </section>
+
+      <section className="detail-section">
+        <h3>Related People ({relatedPeople.length})</h3>
+        {relatedPeople.length === 0 ? (
+          <p className="muted-text">No related people yet.</p>
+        ) : (
+          <ul className="simple-list">
+            {relatedPeople.map((p) => (
+              <li key={p.id}>
+                <button className="link-button" onClick={() => onNavigate('people', p.id)}>
+                  {p.full_name}
+                </button>{' '}
+                <span className="muted-text">— {p.relationship_type || 'related'}</span>{' '}
+                <button
+                  className="link-button danger"
+                  onClick={() => handleUnlinkRelatedPerson(p.id)}
+                >
+                  Unlink
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {unlinkedRelatedPeople.length > 0 && (
+          <form className="quick-add-form" onSubmit={handleLinkRelatedPerson}>
+            <div className="form-grid">
+              <label>
+                Person
+                <select
+                  value={newRelatedPersonId}
+                  onChange={(e) => setNewRelatedPersonId(e.target.value)}
+                >
+                  <option value="">Select a person...</option>
+                  {unlinkedRelatedPeople.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.full_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Relationship Type
+                <input
+                  placeholder="e.g. colleague, mentor, referred by"
+                  value={newRelationType}
+                  onChange={(e) => setNewRelationType(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="form-actions">
+              <button type="submit" className="primary-button" disabled={!newRelatedPersonId}>
+                + Link Person
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+
+      <section className="detail-section">
+        <h3>Timeline ({timeline.length})</h3>
+        {timeline.length === 0 ? (
+          <p className="muted-text">No timeline activity yet.</p>
+        ) : (
+          <ul className="timeline-list">
+            {timeline.map((item, index) => (
+              <li key={`${item.kind}-${item.entityId || index}`} className="timeline-item">
+                <span className="timeline-date">{new Date(item.date).toLocaleDateString()}</span>
+                <span className={`timeline-kind timeline-kind-${item.kind}`}>{item.kind}</span>
+                {item.entityType && item.entityId ? (
+                  <button
+                    className="link-button"
+                    onClick={() => onNavigate(item.entityType, item.entityId)}
+                  >
+                    {item.label}
+                  </button>
+                ) : (
+                  <span>{item.label}</span>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import NotesPanel from '../components/NotesPanel.jsx'
 import './DetailPage.css'
 
-function OpportunityDetailPage({ opportunityId, onBack }) {
+function OpportunityDetailPage({ opportunityId, onBack, onNavigate }) {
   const [opportunity, setOpportunity] = useState(null)
   const [tasks, setTasks] = useState([])
   const [events, setEvents] = useState([])
@@ -102,11 +102,33 @@ function OpportunityDetailPage({ opportunityId, onBack }) {
       <div className="detail-summary-grid">
         <div>
           <strong>Company</strong>
-          <p>{opportunity.companies?.name || '—'}</p>
+          <p>
+            {opportunity.companies?.id ? (
+              <button
+                className="link-button"
+                onClick={() => onNavigate('companies', opportunity.companies.id)}
+              >
+                {opportunity.companies.name}
+              </button>
+            ) : (
+              '—'
+            )}
+          </p>
         </div>
         <div>
           <strong>Person</strong>
-          <p>{opportunity.people?.full_name || '—'}</p>
+          <p>
+            {opportunity.people?.id ? (
+              <button
+                className="link-button"
+                onClick={() => onNavigate('people', opportunity.people.id)}
+              >
+                {opportunity.people.full_name}
+              </button>
+            ) : (
+              '—'
+            )}
+          </p>
         </div>
         <div>
           <strong>Type</strong>
@@ -144,7 +166,9 @@ function OpportunityDetailPage({ opportunityId, onBack }) {
           <ul className="simple-list">
             {products.map((p) => (
               <li key={p.id}>
-                {p.name}{' '}
+                <button className="link-button" onClick={() => onNavigate('products', p.id)}>
+                  {p.name}
+                </button>{' '}
                 <button className="link-button danger" onClick={() => handleUnlinkProduct(p.id)}>
                   Unlink
                 </button>
@@ -172,7 +196,10 @@ function OpportunityDetailPage({ opportunityId, onBack }) {
           <ul className="simple-list">
             {tasks.map((t) => (
               <li key={t.id}>
-                {t.name} <span className="muted-text">— due {t.due_date || 'no date'}, {t.status}</span>
+                <button className="link-button" onClick={() => onNavigate('tasks', t.id)}>
+                  {t.name}
+                </button>{' '}
+                <span className="muted-text">— due {t.due_date || 'no date'}, {t.status}</span>
               </li>
             ))}
           </ul>
@@ -187,7 +214,9 @@ function OpportunityDetailPage({ opportunityId, onBack }) {
           <ul className="simple-list">
             {events.map((ev) => (
               <li key={ev.id}>
-                {new Date(ev.event_date).toLocaleDateString()}{' '}
+                <button className="link-button" onClick={() => onNavigate('events', ev.id)}>
+                  {new Date(ev.event_date).toLocaleDateString()}
+                </button>{' '}
                 <span className="muted-text">— {ev.event_type || 'meeting'}</span>
               </li>
             ))}
